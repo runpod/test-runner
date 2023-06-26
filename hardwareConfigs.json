@@ -1,0 +1,17 @@
+[
+  {
+    "endpoint": "whisper"
+  },
+  {
+    "endpointConfig": {
+      "gpuIds": "AMPERE_16",
+      "name": "16GB GPU"
+    }
+  },
+  {
+    "endpointConfig": {
+      "gpuIds": "AMPERE_24",
+      "name": "24GB GPU"
+    }
+  }
+]

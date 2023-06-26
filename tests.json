@@ -1,0 +1,35 @@
+[
+  {
+    "hardwareConfig": {
+      "endpoint": "whisper"
+    },
+    "input": {
+      "audio": "https://github.com/runpod-workers/sample-inputs/raw/main/audio/Arthur.mp3",
+      "model": "base"
+    }
+  },
+  {
+    "hardwareConfig": {
+      "endpointConfig": {
+        "gpuIds": "AMPERE_16",
+        "name": "16GB GPU"
+      }
+    },
+    "input": {
+      "audio": "https://github.com/runpod-workers/sample-inputs/raw/main/audio/Arthur.mp3",
+      "model": "base"
+    }
+  },
+  {
+    "hardwareConfig": {
+      "endpointConfig": {
+        "gpuIds": "AMPERE_24",
+        "name": "24GB GPU"
+      }
+    },
+    "input": {
+      "audio": "https://github.com/runpod-workers/sample-inputs/raw/main/audio/Arthur.mp3",
+      "model": "base"
+    }
+  }
+]

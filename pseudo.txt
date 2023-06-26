@@ -1,0 +1,38 @@
+inputs: 
+    image: docker image url
+    tests: [test hardware config/input/output pairs]
+opts: 
+    create template or use template?
+    later: run as pod or serverless worker?
+env:
+    runpod_key: runpod API key
+    dockerhub_creds: dockerhub creds
+
+results = []
+hardware_groups = group tests by hardware config
+for hardware config in hardware_groups in parallel:
+    create serverless template/endpoint with image and hardware config
+    wait until endpoint created or fails
+    for input in hardware group in parallel:
+        promise = hit endpoint with input, attach hardware config/expected output
+        results.push(promise)
+
+await Promise.all(results)
+for input/output in tests:
+    if expected output present and actual not expected:
+        print deep diff between actual and expected
+print total exact matches
+estimate/print total spend
+print results
+output: [
+    {
+       hardware config
+       input
+       output
+       tested?
+       worker creation time
+       cold start time
+       execution time
+       other info from runpod api like mem utilization
+    }
+ ]

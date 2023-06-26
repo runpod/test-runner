@@ -1,0 +1,5 @@
+given rp_schema.py and values of required inputs, generate representative inputs
+
+for parameter in schema:
+    try not specifying parameter
+    try specifying only parameter (and required inputs)
