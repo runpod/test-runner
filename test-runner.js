@@ -1,16 +1,23 @@
-import { groupBy, omit, map, curry, isNil } from "ramda"
+import { groupBy, omit, map, curry, isNil, isEmpty } from "ramda"
 import "dotenv/config"
 import axios from "axios"
 import fs from "fs"
 import { randomUUID, createHash } from "crypto"
 import { SAVE_TEMPLATE, DELETE_TEMPLATE, SAVE_ENDPOINT, DELETE_ENDPOINT } from "./query.js"
 import { defaultEndpointConfig, defaultTemplateConfig } from "./defaults.js"
+import core from "@actions/core"
+import github from "@actions/github"
 
 const args = process.argv.slice(2)
-const [imageName, testFilename] = args
+let [imageTag, testFilename] = args
+const coreImageTag = core.getInput("image-name")
+const coreTestFilename = core.getInput("test-filename")
+imageTag = isEmpty(coreImageTag) ? imageTag : coreImageTag
+testFilename = isEmpty(coreTestFilename) ? testFilename : coreTestFilename
 const { RUNPOD_API_KEY, CONTAINER_REGISTRY_AUTH_ID } = process.env
-const print = console.log //lemme just pretend it's python
+const print = core.info //lemme just pretend it's python
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+const hash = (obj) => createHash("sha256").update(JSON.stringify(obj)).digest("base64")
 const groupByKey = curry((key, obj) =>
   Object.values(
     map(
@@ -72,7 +79,7 @@ const getOrCreateEndpoint = async (hardwareConfig) => {
     containerRegistryAuthId: CONTAINER_REGISTRY_AUTH_ID,
     ...defaultTemplateConfig,
     ...(templateConfig ?? {}),
-    imageName,
+    imageName: imageTag,
     name: templateName,
   })
   print(`created template ${templateId}`)
@@ -146,7 +153,7 @@ const getRunpodResult = async (endpointUrl, input) => {
   const runResp = await axios.post(runUrl, { input }, authHeader)
   const { status, statusText } = runResp
   if (status !== 200) {
-    return { status, statusText, succeeded: false }
+    return { status, statusText, started: false }
   }
   let data = runResp.data
   const { id } = data
@@ -157,50 +164,74 @@ const getRunpodResult = async (endpointUrl, input) => {
   while (!["COMPLETED", "FAILED"].includes(data.status)) {
     if (Date.now() - start > maxWaitTimeSeconds * 1000) {
       print(`${statusUrl} timed out after ${maxWaitTimeSeconds} seconds`)
-      return { ...data, succeeded: false }
+      return { ...data, started: true, completed: false }
     }
     await sleep(1000 * pollIntervalSeconds)
     const statusResp = await axios.get(statusUrl, authHeader)
     data = statusResp.data
     print(`${statusUrl}: ${data.status}`)
   }
-  return { ...data, succeeded: data.status === "COMPLETED" }
+  return { ...data, started: true, completed: true, succeeded: data.status === "COMPLETED" }
 }
-print(`testing image ${imageName} against tests from ${testFilename}`)
-let tests = JSON.parse(fs.readFileSync(testFilename, "utf8"))
-const hardwareGroups = groupByKey("hardwareConfig", tests)
-let promises = []
-let resourcesCreated = []
-for (const { hardwareConfig, values: tests } of hardwareGroups) {
-  const endpoint = await getOrCreateEndpoint(hardwareConfig)
-  resourcesCreated.push(endpoint)
-  const { endpointUrl } = endpoint
-  print(`running ${tests.length} inputs against ${endpointUrl}...`)
-  for (const { input } of tests) {
-    promises.push(
-      getRunpodResult(endpointUrl, input).then((result) => ({
-        input,
-        hardwareConfig,
-        ...result,
-        outputHash: createHash("sha256").update(JSON.stringify(result.output)).digest("base64"),
-      }))
-    )
+const run = async () => {
+  print(`testing image ${imageTag} against tests from ${testFilename}`)
+  let tests = JSON.parse(fs.readFileSync(testFilename, "utf8")).map((t) => ({
+    expectedOutput: t.output ?? undefined,
+    ...t,
+  }))
+  const hardwareGroups = groupByKey("hardwareConfig", tests)
+  let promises = []
+  let resourcesCreated = []
+  for (const { hardwareConfig, values: tests } of hardwareGroups) {
+    const endpoint = await getOrCreateEndpoint(hardwareConfig)
+    resourcesCreated.push(endpoint)
+    const { endpointUrl } = endpoint
+    print(`running ${tests.length} inputs against ${endpointUrl}...`)
+    for (const { input } of tests) {
+      promises.push(
+        getRunpodResult(endpointUrl, input)
+          .then((result) => ({
+            input,
+            hardwareConfig,
+            ...result,
+            outputHash: hash(result.output),
+          }))
+          .catch((error) => ({ input, hardwareConfig, error, completed: false }))
+      )
+    }
   }
+
+  const results = await Promise.all(promises)
+  print("Done!")
+  // TODO: estimate/print total spend
+
+  const outFilename = `test-results-${new Date().toISOString()}.json`
+  fs.writeFileSync(outFilename, JSON.stringify(results, null, 2), "utf-8")
+  print(`results written to ${outFilename}`)
+
+  core.setOutput("total-tests", tests.length)
+  core.setOutput("started", results.filter((t) => t.started).length)
+  core.setOutput("completed", results.filter((t) => t.completed).length)
+  core.setOutput("succeeded", results.filter((t) => t.succeeded).length)
+  core.setOutput("output-provided", results.filter((t) => !isNil(t.expectedOutput)).length)
+  core.setOutput(
+    "output-matched",
+    results.filter(
+      (t) => !isNil(t.expectedOutput) && t.completed && hash(t.expectedOutput) === t.outputHash
+    ).length
+  )
+
+  print("Cleaning up...")
+  promises = []
+  for (const resource of resourcesCreated) {
+    promises.push(deleteResources(resource))
+  }
+
+  await Promise.all(promises)
 }
 
-const results = await Promise.all(promises)
-print("Done!")
-// TODO: print total exact matches with expected output
-// TODO: estimate/print total spend
-
-const outFilename = `test-results-${new Date().toISOString()}.json`
-fs.writeFileSync(outFilename, JSON.stringify(results, null, 2), "utf-8")
-print(`results written to ${outFilename}`)
-
-print("Cleaning up...")
-promises = []
-for (const resource of resourcesCreated) {
-  promises.push(deleteResources(resource))
+try {
+  run()
+} catch (e) {
+  core.setFailed(e.message)
 }
-
-await Promise.all(promises)

@@ -1,0 +1,25 @@
+name: "Run Runpod Tests"
+description: "Run a runpod serverless worker based on a given image and record the results"
+inputs:
+  image-tag:
+    description: "The image tag of the docker image to test"
+    required: true
+  test-filename:
+    description: "The name of a file containing test cases"
+    required: true
+    default: "tests.json"
+outputs:
+  total-tests:
+    description: "The number of total tests"
+  ran:
+    description: "The number of tests that were successfully started"
+  completed:
+    description: "The number of tests that were successfully completed"
+  output-provided:
+    description: "The number of tests where expected output was provided"
+  output-matched:
+    description: "The number of tests where output matched exactly with expected"
+
+runs:
+  using: "node18"
+  main: "test-runner.js"
