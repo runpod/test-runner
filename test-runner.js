@@ -2,7 +2,7 @@ import { groupBy, omit, map, curry, isNil } from "ramda"
 import "dotenv/config"
 import axios from "axios"
 import fs from "fs"
-import { randomUUID } from "crypto"
+import { randomUUID, createHash } from "crypto"
 import { SAVE_TEMPLATE, DELETE_TEMPLATE, SAVE_ENDPOINT, DELETE_ENDPOINT } from "./query.js"
 import { defaultEndpointConfig, defaultTemplateConfig } from "./defaults.js"
 
@@ -152,7 +152,13 @@ const getRunpodResult = async (endpointUrl, input) => {
   const { id } = data
   const statusUrl = endpointUrl + "/status/" + id
   const pollIntervalSeconds = 10
+  const start = Date.now()
+  const maxWaitTimeSeconds = 300
   while (!["COMPLETED", "FAILED"].includes(data.status)) {
+    if (Date.now() - start > maxWaitTimeSeconds * 1000) {
+      print(`${statusUrl} timed out after ${maxWaitTimeSeconds} seconds`)
+      return { ...data, succeeded: false }
+    }
     await sleep(1000 * pollIntervalSeconds)
     const statusResp = await axios.get(statusUrl, authHeader)
     data = statusResp.data
@@ -172,7 +178,12 @@ for (const { hardwareConfig, values: tests } of hardwareGroups) {
   print(`running ${tests.length} inputs against ${endpointUrl}...`)
   for (const { input } of tests) {
     promises.push(
-      getRunpodResult(endpointUrl, input).then((result) => ({ input, hardwareConfig, ...result }))
+      getRunpodResult(endpointUrl, input).then((result) => ({
+        input,
+        hardwareConfig,
+        ...result,
+        outputHash: createHash("sha256").update(JSON.stringify(result.output)).digest("base64"),
+      }))
     )
   }
 }
