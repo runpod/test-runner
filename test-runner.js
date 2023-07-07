@@ -9,7 +9,7 @@ import core from "@actions/core"
 
 const args = process.argv.slice(2)
 let [imageTag, testFilename] = args
-const coreImageTag = core.getInput("image-name")
+const coreImageTag = core.getInput("image-tag")
 const coreTestFilename = core.getInput("test-filename")
 let { RUNPOD_API_KEY, CONTAINER_REGISTRY_AUTH_ID } = process.env
 const apiKeyFromCore = core.getInput("runpod-api-key")
