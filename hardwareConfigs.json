@@ -1,6 +1,9 @@
 [
   {
-    "endpoint": "whisper"
+    "endpointConfig": {
+      "gpuIds": "AMPERE_16",
+      "name": "16GB GPU"
+    }
   },
   {
     "endpoint": "faster-whisper"

@@ -6,18 +6,25 @@ import { randomUUID, createHash } from "crypto"
 import { SAVE_TEMPLATE, DELETE_TEMPLATE, SAVE_ENDPOINT, DELETE_ENDPOINT } from "./query.js"
 import { defaultEndpointConfig, defaultTemplateConfig } from "./defaults.js"
 import core from "@actions/core"
-import github from "@actions/github"
 
 const args = process.argv.slice(2)
 let [imageTag, testFilename] = args
 const coreImageTag = core.getInput("image-name")
 const coreTestFilename = core.getInput("test-filename")
+let { RUNPOD_API_KEY, CONTAINER_REGISTRY_AUTH_ID } = process.env
+const apiKeyFromCore = core.getInput("runpod-api-key")
+const containerRegistryAuthIdFromCore = core.getInput("container-registry-auth-id")
 imageTag = isEmpty(coreImageTag) ? imageTag : coreImageTag
 testFilename = isEmpty(coreTestFilename) ? testFilename : coreTestFilename
-const { RUNPOD_API_KEY, CONTAINER_REGISTRY_AUTH_ID } = process.env
+RUNPOD_API_KEY = isEmpty(apiKeyFromCore) ? RUNPOD_API_KEY : apiKeyFromCore
+CONTAINER_REGISTRY_AUTH_ID = isEmpty(containerRegistryAuthIdFromCore)
+  ? CONTAINER_REGISTRY_AUTH_ID
+  : containerRegistryAuthIdFromCore
+
 const print = core.info //lemme just pretend it's python
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 const hash = (obj) => createHash("sha256").update(JSON.stringify(obj)).digest("base64")
+const asyncMap = curry((asyncFn, list) => Promise.all(map(asyncFn, list)))
 const groupByKey = curry((key, obj) =>
   Object.values(
     map(
@@ -196,7 +203,7 @@ const run = async () => {
             ...result,
             outputHash: hash(result.output),
           }))
-          .catch((error) => ({ input, hardwareConfig, error, completed: false }))
+          .catch((error) => ({ input, hardwareConfig, error, started: true, completed: false }))
       )
     }
   }
@@ -222,12 +229,7 @@ const run = async () => {
   )
 
   print("Cleaning up...")
-  promises = []
-  for (const resource of resourcesCreated) {
-    promises.push(deleteResources(resource))
-  }
-
-  await Promise.all(promises)
+  await asyncMap(deleteResources, resourcesCreated)
 }
 
 try {

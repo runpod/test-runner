@@ -8,12 +8,20 @@ inputs:
     description: "The name of a file containing test cases"
     required: true
     default: "tests.json"
+  runpod-api-key:
+    description: "A valid runpod api key"
+    required: true
+  container-registry-auth-id:
+    description: "A runpod id for a registry auth object - only needed if creating templates from a private container image"
+    required: false
 outputs:
   total-tests:
     description: "The number of total tests"
-  ran:
+  started:
     description: "The number of tests that were successfully started"
   completed:
+    description: "The number of tests that were completed"
+  succeeded:
     description: "The number of tests that were successfully completed"
   output-provided:
     description: "The number of tests where expected output was provided"
