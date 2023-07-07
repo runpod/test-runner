@@ -216,22 +216,24 @@ const run = async () => {
   fs.writeFileSync(outFilename, JSON.stringify(results, null, 2), "utf-8")
   print(`results written to ${outFilename}`)
 
-  core.setOutput("total-tests", tests.length)
-  core.setOutput("started", results.filter((t) => t.started).length)
-  core.setOutput("completed", results.filter((t) => t.completed).length)
-  core.setOutput("succeeded", results.filter((t) => t.succeeded).length)
   const totalTests = tests.length
+  const started = results.filter((t) => t.started).length
+  const completed = results.filter((t) => t.completed).length
   const succeeded = results.filter((t) => t.succeeded).length
+  const outputProvided = results.filter((t) => !isNil(t.expectedOutput)).length
+  const outputMatched = results.filter(
+    (t) => !isNil(t.expectedOutput) && t.completed && hash(t.expectedOutput) === t.outputHash
+  ).length
+  print({ totalTests, started, completed, succeeded, outputProvided, outputMatched })
   if (succeeded < totalTests) {
     core.setFailed(`failed ${totalTests - succeeded} out of ${totalTests} tests`)
   }
-  core.setOutput("output-provided", results.filter((t) => !isNil(t.expectedOutput)).length)
-  core.setOutput(
-    "output-matched",
-    results.filter(
-      (t) => !isNil(t.expectedOutput) && t.completed && hash(t.expectedOutput) === t.outputHash
-    ).length
-  )
+  core.setOutput("total-tests", totalTests)
+  core.setOutput("started", started)
+  core.setOutput("completed", completed)
+  core.setOutput("succeeded", succeeded)
+  core.setOutput("output-provided", outputProvided)
+  core.setOutput("output-matched", outputMatched)
 
   if (resourcesCreated.length > 0) {
     print("Cleaning up...")
