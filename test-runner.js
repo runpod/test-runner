@@ -220,6 +220,11 @@ const run = async () => {
   core.setOutput("started", results.filter((t) => t.started).length)
   core.setOutput("completed", results.filter((t) => t.completed).length)
   core.setOutput("succeeded", results.filter((t) => t.succeeded).length)
+  const totalTests = tests.length
+  const succeeded = results.filter((t) => t.succeeded).length
+  if (succeeded < totalTests) {
+    core.setFailed(`failed ${totalTests - succeeded} out of ${totalTests} tests`)
+  }
   core.setOutput("output-provided", results.filter((t) => !isNil(t.expectedOutput)).length)
   core.setOutput(
     "output-matched",
