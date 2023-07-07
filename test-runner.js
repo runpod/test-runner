@@ -233,8 +233,10 @@ const run = async () => {
     ).length
   )
 
-  print("Cleaning up...")
-  await asyncMap(deleteResources, resourcesCreated)
+  if (resourcesCreated.length > 0) {
+    print("Cleaning up...")
+    await asyncMap(deleteResources, resourcesCreated)
+  }
 }
 
 try {
