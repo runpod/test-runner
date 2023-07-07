@@ -7,7 +7,7 @@ inputs:
   test-filename:
     description: "The name of a file containing test cases"
     required: true
-    default: "tests.json"
+    default: "src/tests.json"
   runpod-api-key:
     description: "A valid runpod api key"
     required: true
