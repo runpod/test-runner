@@ -29,5 +29,5 @@ outputs:
     description: "The number of tests where output matched exactly with expected"
 
 runs:
-  using: "node18"
+  using: "node16"
   main: "test-runner.js"
