@@ -1,4 +1,0 @@
-output-viz-pseudo.txt
-
-data points = combine data from multiple different output files
-want histograms of cold start/execution time
