@@ -225,7 +225,6 @@ const run = async () => {
   const outputMatched = results.filter(
     (t) => !isNil(t.expectedOutput) && t.completed && hash(t.expectedOutput) === t.outputHash
   ).length
-  print({ totalTests, started, completed, succeeded, outputProvided, outputMatched })
   if (succeeded < totalTests) {
     core.setFailed(`failed ${totalTests - succeeded} out of ${totalTests} tests`)
   }
