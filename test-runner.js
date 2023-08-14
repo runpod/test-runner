@@ -228,6 +228,7 @@ const run = async () => {
   if (succeeded < totalTests) {
     core.setFailed(`failed ${totalTests - succeeded} out of ${totalTests} tests`)
   }
+  core.setOutput("results", results)
   core.setOutput("total-tests", totalTests)
   core.setOutput("started", started)
   core.setOutput("completed", completed)
