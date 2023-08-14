@@ -8,14 +8,16 @@ import { defaultEndpointConfig, defaultTemplateConfig } from "./defaults.js"
 import core from "@actions/core"
 
 const args = process.argv.slice(2)
-let [imageTag, testFilename] = args
+let [imageTag, testFilename, maxWaitTimeSeconds] = args
 const coreImageTag = core.getInput("image-tag")
 const coreTestFilename = core.getInput("test-filename")
+const coreMaxWaitTime = core.getInput("request-timeout")
 let { RUNPOD_API_KEY, CONTAINER_REGISTRY_AUTH_ID } = process.env
 const apiKeyFromCore = core.getInput("runpod-api-key")
 const containerRegistryAuthIdFromCore = core.getInput("container-registry-auth-id")
 imageTag = isEmpty(coreImageTag) ? imageTag : coreImageTag
 testFilename = isEmpty(coreTestFilename) ? testFilename : coreTestFilename
+maxWaitTimeSeconds = isEmpty(coreMaxWaitTime) ? maxWaitTimeSeconds ?? 300 : coreMaxWaitTime
 RUNPOD_API_KEY = isEmpty(apiKeyFromCore) ? RUNPOD_API_KEY : apiKeyFromCore
 CONTAINER_REGISTRY_AUTH_ID = isEmpty(containerRegistryAuthIdFromCore)
   ? CONTAINER_REGISTRY_AUTH_ID
@@ -167,7 +169,6 @@ const getRunpodResult = async (endpointUrl, input) => {
   const statusUrl = endpointUrl + "/status/" + id
   const pollIntervalSeconds = 10
   const start = Date.now()
-  const maxWaitTimeSeconds = 300
   while (!["COMPLETED", "FAILED"].includes(data.status)) {
     if (Date.now() - start > maxWaitTimeSeconds * 1000) {
       print(`${statusUrl} timed out after ${maxWaitTimeSeconds} seconds`)

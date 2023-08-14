@@ -11,6 +11,10 @@ inputs:
   runpod-api-key:
     description: "A valid runpod api key"
     required: true
+  request-timeout:
+    description: "Number of seconds to wait on each request before timing out"
+    required: false
+    default: 300
   container-registry-auth-id:
     description: "A runpod id for a registry auth object - only needed if creating templates from a private container image"
     required: false
