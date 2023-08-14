@@ -27,7 +27,7 @@ jobs:
       ...
       - uses: actions/checkout@v3
       - name: Run Tests
-        uses: direlines/runpod-test-runner@v1.5
+        uses: direlines/runpod-test-runner@v1.6
         with:
           image-tag: [tag of image to test]
           runpod-api-key: [a valid Runpod API key]
