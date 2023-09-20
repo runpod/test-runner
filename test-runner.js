@@ -118,6 +118,7 @@ const deleteResources = async ({ endpoint, templateName }) => {
         input: { ...endpoint, workersMin: 0, workersMax: 0 },
       },
     })
+    await sleep(1000)
     //delete endpoint
     await getRunpodGraphqlResult({
       query: DELETE_ENDPOINT,
@@ -126,13 +127,10 @@ const deleteResources = async ({ endpoint, templateName }) => {
     print(`deleted endpoint ${endpoint.id}`)
   }
   if (templateName) {
-    //wait a little while - some backend crap needs to resolve
     const start = Date.now()
-    const estimatedWaitSeconds = 110
-    print(`waiting ${estimatedWaitSeconds} seconds to delete template ${templateName}...`)
-    await sleep(estimatedWaitSeconds * 1000)
+    await sleep(1000)
     //delete template with retries
-    const pollIntervalSeconds = 10
+    const pollIntervalSeconds = 2
     let deleted = false
     while (!deleted) {
       const deleteResp = await getRunpodGraphqlResult({
