@@ -32,6 +32,7 @@ jobs:
           image-tag: [tag of image to test]
           runpod-api-key: [a valid Runpod API key]
           test-filename: [path for a json file containing a list of tests]
+          request-timeout: [number of seconds to wait on each request before timing out, defaults to 300]
 ```
 
 If test-filename is omitted, the test runner action will attempt to look for a test file at `.github/tests.json`.
