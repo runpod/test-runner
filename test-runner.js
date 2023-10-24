@@ -41,13 +41,27 @@ const groupByKey = curry((key, obj) =>
 
 const getRunpodGraphqlResult = async ({ query, variables }) => {
   const runpodGraphqlBaseUrl = `https://api.runpod.io/graphql?api_key=${RUNPOD_API_KEY}`
-  return axios.post(runpodGraphqlBaseUrl, { query, variables }).then(({ data }) => data)
+  return axios
+    .post(runpodGraphqlBaseUrl, { query, variables })
+    .then(({ data }) => data)
+    .catch((error) => ({ error }))
 }
 const createEndpoint = async (endpointConfig) =>
   getRunpodGraphqlResult({
     query: SAVE_ENDPOINT,
     variables: { input: endpointConfig },
-  }).then(({ data }) => data.saveEndpoint)
+  }).then((resp) => {
+    const { error, errors, data } = resp
+    if (error) {
+      //axios error
+      return { error }
+    }
+    if (errors) {
+      //runpod error
+      return { error: errors }
+    }
+    return data.saveEndpoint
+  })
 
 const createTemplate = async (templateConfig) =>
   getRunpodGraphqlResult({
@@ -71,9 +85,12 @@ const getOrCreateEndpoint = async (hardwareConfig) => {
       ...(endpointConfig ?? {}),
     }
     const createEndpointResp = await createEndpoint(endpointInput)
+    if (createEndpointResp.error) {
+      print(`error trying to create endpoint for ${endpointInput.name}`)
+      return {}
+    }
     const { id: endpointId } = createEndpointResp
     print(`created endpoint ${endpointId} (${endpointInput.name})`)
-    //TODO handle error
     return {
       endpointUrl: `${runpodServerlessBaseUrl}/${endpointId}`,
       endpoint: { ...endpointInput, id: endpointId },
@@ -99,9 +116,21 @@ const getOrCreateEndpoint = async (hardwareConfig) => {
     ...(endpointConfig ?? {}),
   }
   const createEndpointResp = await createEndpoint(endpointInput)
+  if ("error" in createEndpointResp) {
+    print(
+      `error trying to create endpoint for ${endpointInput.name}: ${JSON.stringify(
+        createEndpointResp.error,
+        null,
+        2
+      )}`
+    )
+    return {
+      templateId,
+      templateName,
+    }
+  }
   const { id: endpointId } = createEndpointResp
   print(`created endpoint ${endpointId} (${endpointInput.name})`)
-  //TODO handle error
   return {
     endpointUrl: `${runpodServerlessBaseUrl}/${endpointId}`,
     endpoint: { ...endpointInput, id: endpointId },
@@ -192,6 +221,9 @@ const run = async () => {
     const endpoint = await getOrCreateEndpoint(hardwareConfig)
     resourcesCreated.push(endpoint)
     const { endpointUrl } = endpoint
+    if (isNil(endpointUrl)) {
+      continue
+    }
     print(`running ${tests.length} inputs against ${endpointUrl}...`)
     for (const { input } of tests) {
       promises.push(
