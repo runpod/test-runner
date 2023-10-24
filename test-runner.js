@@ -67,10 +67,21 @@ const createTemplate = async (templateConfig) =>
   getRunpodGraphqlResult({
     query: SAVE_TEMPLATE,
     variables: { input: templateConfig },
-  }).then(({ data }) => ({
-    templateId: data.saveTemplate.id,
-    templateName: data.saveTemplate.name,
-  }))
+  }).then((resp) => {
+    const { error, errors, data } = resp
+    if (error) {
+      //axios error
+      return { error }
+    }
+    if (errors) {
+      //runpod error
+      return { error: errors }
+    }
+    return {
+      templateId: data.saveTemplate.id,
+      templateName: data.saveTemplate.name,
+    }
+  })
 const getOrCreateEndpoint = async (hardwareConfig) => {
   const runpodServerlessBaseUrl = "https://api.runpod.ai/v2"
   const { endpoint, template, templateConfig, endpointConfig } = hardwareConfig
@@ -85,8 +96,14 @@ const getOrCreateEndpoint = async (hardwareConfig) => {
       ...(endpointConfig ?? {}),
     }
     const createEndpointResp = await createEndpoint(endpointInput)
-    if (createEndpointResp.error) {
-      print(`error trying to create endpoint for ${endpointInput.name}`)
+    if ("error" in createEndpointResp) {
+      print(
+        `error trying to create endpoint for ${endpointInput.name}: ${JSON.stringify(
+          createEndpointResp.error,
+          null,
+          2
+        )}`
+      )
       return {}
     }
     const { id: endpointId } = createEndpointResp
@@ -101,13 +118,24 @@ const getOrCreateEndpoint = async (hardwareConfig) => {
   //template names have uniqueness constraint unlike endpoint names
   const templateName =
     (templateConfig?.name ?? defaultTemplateConfig.name) + " " + randomUUID().slice(0, 8)
-  const { templateId } = await createTemplate({
+  const createTemplateResp = await createTemplate({
     containerRegistryAuthId: CONTAINER_REGISTRY_AUTH_ID,
     ...defaultTemplateConfig,
     ...(templateConfig ?? {}),
     imageName: imageTag,
     name: templateName,
   })
+  if ("error" in createTemplateResp) {
+    print(
+      `error trying to create template for ${templateName}: ${JSON.stringify(
+        createTemplateResp.error,
+        null,
+        2
+      )}`
+    )
+    return {}
+  }
+  const { templateId } = createTemplateResp
   print(`created template ${templateId}`)
   //TODO handle error
   const endpointInput = {
