@@ -137,7 +137,6 @@ const getOrCreateEndpoint = async (hardwareConfig) => {
   }
   const { templateId } = createTemplateResp
   print(`created template ${templateId}`)
-  //TODO handle error
   const endpointInput = {
     templateId,
     ...defaultEndpointConfig,
