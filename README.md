@@ -9,11 +9,6 @@ note: running this will *spend money* on the account linked by the api key.
 This script can be run as a Github Action, placing the following snippet in the steps of your Github Workflow:
 
 ```yml
-jobs:
-  docker:
-    runs-on: DO
-    steps:
-      ...
       - uses: actions/checkout@v3
       - name: Run Tests
         uses: runpod/runpod-test-runner@v1
@@ -25,6 +20,8 @@ jobs:
 ```
 
 If test-filename is omitted, the test runner action will attempt to look for a test file at `.github/tests.json`.
+
+For an example of this workflow, see the [worker template repo](https://github.com/runpod-workers/worker-template/tree/main/.github)
 
 # Running Locally
 
