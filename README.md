@@ -16,7 +16,7 @@ jobs:
       ...
       - uses: actions/checkout@v3
       - name: Run Tests
-        uses: runpod/runpod-test-runner@v1.7.1
+        uses: runpod/runpod-test-runner@v1
         with:
           image-tag: [tag of image to test]
           runpod-api-key: [a valid Runpod API key]
