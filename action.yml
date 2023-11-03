@@ -1,4 +1,9 @@
 name: "Run Runpod Tests"
+
+branding:
+  icon: 'box'
+  color: 'purple'
+
 description: "Run a runpod serverless worker based on a given image and record the results"
 inputs:
   image-tag:
